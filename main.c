@@ -1,8 +1,17 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
+
+#include <rte_eal.h>
 #include <rte_ethdev.h>
 #include <rte_cycles.h>
 #include <rte_mbuf.h>
+#include <rte_malloc.h>
+
+static volatile bool force_quit;
+
+#// Ports set in promiscuous mode on by default
+static int promiscuous_on = 1;
 
 #define RTE_LOG(level, format, ...) printf(format, ##__VA_ARGS__)
 
@@ -20,7 +29,7 @@ int main(int argc, char *argv[]) {
     // Environment initialization
     int ret = rte_eal_init(argc, argv);
     if (ret < 0) {
-        RTE_LOG(RTE_LOG_ERR, "Error: rte_eal_init failed: %d\n", ret);
+        RTE_LOG(RTE_LOG_ERR, "Error: EAL initialization failed: %d\n", ret);
         return -1;
     }
 
@@ -53,7 +62,7 @@ int main(int argc, char *argv[]) {
     struct rte_mbuf *rx_pkts[BURST_SIZE];
     uint64_t prev_tsc = rte_rdtsc(); // Timestamp for rate calculation
     uint32_t nb_rx = 0;
-    while (1) {
+    while (force_quit) {
         // Retrieve packets from the receive queue
         unsigned nb_burst = rte_eth_rx_burst(port_id, 0, rx_pkts, BURST_SIZE);
 
@@ -76,4 +85,7 @@ int main(int argc, char *argv[]) {
         uint64_t diff_tsc = curr_tsc - prev_tsc;
         if (diff_tsc > (RTE_GET_TSC_FREQ() * 5)) { // Print rate every 5 seconds
             double hz = RTE_GET_TSC_FREQ();
-            printf("Packets received: %u, Rate: %.2
+            printf("Packets received: %u, Rate: %.2);
+        }
+    }
+}
