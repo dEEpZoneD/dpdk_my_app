@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include <rte_common.h>
 #include <rte_eal.h>
 #include <rte_ethdev.h>
 #include <rte_cycles.h>
@@ -10,35 +11,39 @@
 
 static volatile bool force_quit;
 
-#// Ports set in promiscuous mode on by default
+// Ports set in promiscuous mode on by default
 static int promiscuous_on = 1;
 
-#define RTE_LOG(level, format, ...) printf(format, ##__VA_ARGS__)
+#define RTE_LOG_CUSTOM(level, format, ...) printf(format, ##__VA_ARGS__)
 
 #define MEMPOOL_CACHE_SIZE 256
 #define BURST_SIZE 32  // Number of packets to retrieve per burst
 
-int main(int argc, char *argv[]) {
-    uint8_t nb_ports = rte_eth_dev_count();
-    if (nb_ports < 1) {
-        RTE_LOG(RTE_LOG_ERR, "Error: No Ethernet ports found\n");
-        return -1;
-    }
-
+int main(int argc, char **argv) {
+	int ret = 0;
+	
+	/* Init EAL */
+	ret = rte_eal_init(argc, argv);
+	if (ret < 0){
+		rte_exit(EXIT_FAILURE, "Invalid EAL arguments\n");
+	}
+	argc -= ret;
+	argv += ret;
+	
+	uint16_t nb_ports = rte_eth_dev_count_avail();
+	if (nb_ports < 1) {
+		RTE_LOG_CUSTOM(RTE_LOG_ERR, "Error: No Ethernet ports available\n");
+		return -1;
+	}
+	
+	uint16_t port_id = 0; 
+	
+	const uint16_t nb_rx_desc = BURST_SIZE;
+	
+	printf("Success mfs\n");
+	
     return 0;
 
-    // uint16_t port_id = 0;  // Use the first port by default
-
-    // // Environment initialization
-    // int ret = rte_eal_init(argc, argv);
-    // if (ret < 0) {
-    //     RTE_LOG(RTE_LOG_ERR, "Error: EAL initialization failed: %d\n", ret);
-    //     return -1;
-    // }
-
-    // // Port configuration
-    // const uint16_t nb_rx_desc = BURST_SIZE; // Number of receive descriptors
-    // const uint16_t nb_tx_desc = BURST_SIZE; // Number of transmit descriptors (not used in this example)
     // struct rte_eth_conf dev_conf = RTE_ETH_CONF_DEFAULT();
     // dev_conf.rxmode.mq_mode = RTE_ETH_MQ_MODE_NONE; // No multi-queue mode
     // ret = rte_eth_dev_configure(port_id, nb_rx_desc, nb_tx_desc, &dev_conf);
