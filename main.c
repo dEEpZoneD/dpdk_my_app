@@ -43,7 +43,12 @@ int main(int argc, char **argv) {
 	printf("Success mfs\n");
 	
     return 0;
+	
+    // uint16_t port_id = 0;  // Use the first port by defaukt
 
+    // // Port configuration
+    // const uint16_t nb_rx_desc = BURST_SIZE; // Number of receive descriptors
+    // const uint16_t nb_tx_desc = BURST_SIZE; // Number of transmit descriptors (not used in this example)
     // struct rte_eth_conf dev_conf = RTE_ETH_CONF_DEFAULT();
     // dev_conf.rxmode.mq_mode = RTE_ETH_MQ_MODE_NONE; // No multi-queue mode
     // ret = rte_eth_dev_configure(port_id, nb_rx_desc, nb_tx_desc, &dev_conf);
