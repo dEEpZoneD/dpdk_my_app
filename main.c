@@ -5,9 +5,9 @@
 #include <rte_common.h>
 #include <rte_eal.h>
 #include <rte_ethdev.h>
-#include <rte_cycles.h>
 #include <rte_mbuf.h>
 #include <rte_malloc.h>
+#include <rte_cycles.h>
 
 static volatile bool force_quit;
 
@@ -18,6 +18,18 @@ static int promiscuous_on = 1;
 
 #define MEMPOOL_CACHE_SIZE 256
 #define BURST_SIZE 32  // Number of packets to retrieve per burst
+
+
+struct rte_eth_conf eth_dev_conf= {
+	.rxmode = {
+		.mq_mode = RTE_ETH_MQ_RX_NONE,
+	},
+    .txmode = {
+		.mq_mode = RTE_ETH_MQ_TX_NONE,
+	},
+};
+
+struct rte_mempool * print_pktmbuf_pool = NULL;
 
 int main(int argc, char **argv) {
 	int ret = 0;
@@ -41,10 +53,9 @@ int main(int argc, char **argv) {
 	const uint16_t nb_rx_desc = BURST_SIZE;
     ret = rte_eth_dev_is_valid_port(port_id);
 
-    // int rte_eth_rx_queue_setup (uint16_t port_id, uint16_t rx_queue_id, uint16_t nb_rx_desc, unsigned int socket_id, const struct rte_eth_rxconf *rx_conf, struct rte_mempool *mb_pool)
-    // int rte_eth_dev_configure (uint16_t port_id, uint16_t nb_rx_queue, uint16_t nb_tx_queue, const struct rte_eth_conf *eth_conf)
+    int rte_eth_dev_configure(port_id, 1, 1, eth_dev_conf);
 	printf("Success mfs\n");
-	
+    //int rte_eth_rx_queue_setup (port_id, uint16_t rx_queue_id, uint16_t nb_rx_desc, unsigned int socket_id, const struct rte_eth_rxconf *rx_conf, struct rte_mempool *mb_pool);
     return 0;
 	
     // uint16_t port_id = 0;  // Use the first port by defaukt
