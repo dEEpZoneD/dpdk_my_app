@@ -53,10 +53,10 @@ int main(int argc, char **argv) {
 	const uint16_t nb_rx_desc = BURST_SIZE;
     ret = rte_eth_dev_is_valid_port(port_id);
 
-    int rte_eth_dev_configure(port_id, 1, 1, eth_dev_conf);
+    ret = rte_eth_dev_configure(port_id, 1, 1, eth_dev_conf);
 	printf("Success mfs\n");
     //int rte_eth_rx_queue_setup (port_id, uint16_t rx_queue_id, uint16_t nb_rx_desc, unsigned int socket_id, const struct rte_eth_rxconf *rx_conf, struct rte_mempool *mb_pool);
-    return 0;
+    return ret;
 	
     // uint16_t port_id = 0;  // Use the first port by defaukt
 
