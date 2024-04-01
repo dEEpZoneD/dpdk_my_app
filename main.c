@@ -39,7 +39,10 @@ int main(int argc, char **argv) {
 	uint16_t port_id = 0; 
 	
 	const uint16_t nb_rx_desc = BURST_SIZE;
-	
+    ret = rte_eth_dev_is_valid_port(port_id);
+
+    // int rte_eth_rx_queue_setup (uint16_t port_id, uint16_t rx_queue_id, uint16_t nb_rx_desc, unsigned int socket_id, const struct rte_eth_rxconf *rx_conf, struct rte_mempool *mb_pool)
+    // int rte_eth_dev_configure (uint16_t port_id, uint16_t nb_rx_queue, uint16_t nb_tx_queue, const struct rte_eth_conf *eth_conf)
 	printf("Success mfs\n");
 	
     return 0;
