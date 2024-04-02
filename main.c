@@ -43,16 +43,31 @@ static int main_loop() {
 
     printf("Entering main loop on lcore: %u.\n", rte_lcore_id());
 
+    struct rte_ether_hdr *eth_hdr;
+
     while (!force_quit) {
         // Retrieve packets from the receive queue
         unsigned nb_burst = rte_eth_rx_burst(port_id, 0, rx_pkts, BURST_SIZE);
         int pkt_len;
+        
         // Process received packets
         for (unsigned i = 0; i < nb_burst; i++) {
             struct rte_mbuf *mbuf = rx_pkts[i];
+            eth_hdr = rte_pktmbuf_mtod(mbuf ,struct rte_ether_hdr*);
             pkt_len = rte_pktmbuf_pkt_len(mbuf);
             rte_prefetch0(rte_pktmbuf_mtod(mbuf, char *));
             printf("\n\nGot a packet\n");
+
+            printf("Source MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
+                eth_hdr->src_addr.addr_bytes[2], eth_hdr->src_addr.addr_bytes[3],
+                eth_hdr->src_addr.addr_bytes[4], eth_hdr->src_addr.addr_bytes[5]);
+            printf("Destination MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                eth_hdr->dst_addr.addr_bytes[0], eth_hdr->dst_addr.addr_bytes[1],
+                eth_hdr->dst_addr.addr_bytes[2], eth_hdr->dst_addr.addr_bytes[3],
+                eth_hdr->dst_addr.addr_bytes[4], eth_hdr->dst_addr.addr_bytes[5]);
+            printf("Ether type: %04X\n", rte_be_to_cpu_16(eth_hdr->ether_type));
+
             rte_pktmbuf_dump(stdout, mbuf, pkt_len);
             fflush(stdout);
         }
