@@ -30,24 +30,28 @@ struct rte_eth_dev_info dev_info;
 
 struct rte_eth_conf eth_dev_conf= {
 	.rxmode = {
-		.mq_mode = RTE_ETH_MQ_RX_NONE,
+		.mq_mode = RTE_ETH_MQ_RX_RSS,
 	},
     .txmode = {
 		.mq_mode = RTE_ETH_MQ_TX_NONE,
 	},
 };
 
+uint16_t  queue_id[6];
+
 static int main_loop() {
     struct rte_mbuf *rx_pkts[BURST_SIZE];
     unsigned port_id = 0;
+    unsigned lcore_id = rte_lcore_id();
 
-    printf("Entering main loop on lcore: %u.\n", rte_lcore_id());
+    printf("Entering main loop on lcore: %u.\n", lcore_id);
+    fflush(stdout);
 
     struct rte_ether_hdr *eth_hdr;
 
     while (!force_quit) {
         // Retrieve packets from the receive queue
-        unsigned nb_burst = rte_eth_rx_burst(port_id, 0, rx_pkts, BURST_SIZE);
+        unsigned nb_burst = rte_eth_rx_burst(port_id, queue_id[lcore_id], rx_pkts, BURST_SIZE);
         int pkt_len;
         
         // Process received packets
@@ -56,7 +60,7 @@ static int main_loop() {
             eth_hdr = rte_pktmbuf_mtod(mbuf ,struct rte_ether_hdr*);
             pkt_len = rte_pktmbuf_pkt_len(mbuf);
             rte_prefetch0(rte_pktmbuf_mtod(mbuf, char *));
-            printf("\n\nGot a packet\n");
+            printf("\n\nGot a packet from lcore: %u\n", lcore_id);
 
             printf("Source MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
                 eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
@@ -88,9 +92,8 @@ static void signal_handler(int signum) {
 int main(int argc, char **argv) {
 	int ret = 0;
     unsigned int nb_mbufs;
-    unsigned int nb_lcores = 1;
-    unsigned lcore_id;
-    
+    unsigned int nb_lcores;
+    unsigned lcore_id;    
 	
 	/* Init EAL */
 	ret = rte_eal_init(argc, argv);
@@ -99,6 +102,9 @@ int main(int argc, char **argv) {
 	}
 	argc -= ret;
 	argv += ret;
+
+    nb_lcores = rte_lcore_count();
+    
 
     force_quit = false;
 	signal(SIGINT, signal_handler);
@@ -110,7 +116,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 	
-	uint16_t port_id = 0; 
+	unsigned port_id = 0;
 	
 	const uint16_t nb_rx_desc = BURST_SIZE;
     ret = rte_eth_dev_is_valid_port(port_id);
@@ -151,13 +157,21 @@ int main(int argc, char **argv) {
     }
 
     fflush(stdout);
+
     rxq_conf = dev_info.default_rxconf;
     rxq_conf.offloads = eth_dev_conf.rxmode.offloads;
+    
     /* RX queue setup. 8< */
-    ret = rte_eth_rx_queue_setup(port_id, 0, nb_rxd,
-                        rte_eth_dev_socket_id(port_id),
-                        &rxq_conf,
-                        print_pktmbuf_pool);
+    uint16_t  i = 0;
+    RTE_LCORE_FOREACH_WORKER(lcore_id) {
+        queue_id[lcore_id] = i;
+        i++;
+        ret = rte_eth_rx_queue_setup(port_id, queue_id[lcore_id], nb_rxd,
+                            rte_eth_dev_socket_id(port_id),
+                            &rxq_conf,
+                            print_pktmbuf_pool);
+    }
+
     if (ret < 0) {
         rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup failed\n");
     }
