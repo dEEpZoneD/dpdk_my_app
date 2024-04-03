@@ -28,10 +28,18 @@ struct rte_eth_rxconf rxq_conf;
 struct rte_eth_txconf txq_conf;
 struct rte_eth_dev_info dev_info;
 
+// struct rte_eth_rss_conf dev_rss_conf;
+
 struct rte_eth_conf eth_dev_conf= {
 	.rxmode = {
-		.mq_mode = RTE_ETH_MQ_RX_RSS,
+		.mq_mode = RTE_ETH_MQ_RX_NONE,
 	},
+    .rx_adv_conf = {
+        .rss_conf = {
+            .rss_key = NULL,
+            .rss_hf = 0x0,
+        }
+    },
     .txmode = {
 		.mq_mode = RTE_ETH_MQ_TX_NONE,
 	},
@@ -138,7 +146,9 @@ int main(int argc, char **argv) {
         rte_exit(EXIT_FAILURE, "Error during getting device info\n");
     }
 
-    ret = rte_eth_dev_configure(port_id, 1, 1, &eth_dev_conf);
+    int nb_rx_queues = nb_lcores;
+
+    ret = rte_eth_dev_configure(port_id, nb_rx_queues, 1, &eth_dev_conf);
     if (ret < 0) {
         rte_exit(EXIT_FAILURE, "ETH Devive Configuration Failed\n");
         return -1;
@@ -163,9 +173,10 @@ int main(int argc, char **argv) {
     
     /* RX queue setup. 8< */
     uint16_t  i = 0;
-    RTE_LCORE_FOREACH_WORKER(lcore_id) {
+    RTE_LCORE_FOREACH(lcore_id) {
         queue_id[lcore_id] = i;
         i++;
+        printf("Configuring queue: %u\n", queue_id[lcore_id]);
         ret = rte_eth_rx_queue_setup(port_id, queue_id[lcore_id], nb_rxd,
                             rte_eth_dev_socket_id(port_id),
                             &rxq_conf,
