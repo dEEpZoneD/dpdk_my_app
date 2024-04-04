@@ -45,6 +45,9 @@ struct rte_eth_conf eth_dev_conf= {
 	},
 };
 
+struct rte_mempool * print_pktmbuf_pool = NULL;
+unsigned int mbufs_avail;
+unsigned int mbufs_inuse;
 uint16_t  queue_id[6];
 
 static int main_loop() {
@@ -68,7 +71,7 @@ static int main_loop() {
             eth_hdr = rte_pktmbuf_mtod(mbuf ,struct rte_ether_hdr*);
             pkt_len = rte_pktmbuf_pkt_len(mbuf);
             rte_prefetch0(rte_pktmbuf_mtod(mbuf, char *));
-            printf("\n\nGot a packet from lcore: %u\n", lcore_id);
+            printf("\n\nGot a packet from lcore: %u Queue: %u\n", lcore_id, queue_id[lcore_id]);
 
             printf("Source MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
                 eth_hdr->src_addr.addr_bytes[0], eth_hdr->src_addr.addr_bytes[1],
@@ -81,13 +84,14 @@ static int main_loop() {
             printf("Ether type: %04X\n", rte_be_to_cpu_16(eth_hdr->ether_type));
 
             rte_pktmbuf_dump(stdout, mbuf, pkt_len);
+            rte_pktmbuf_free(mbuf);
+            mbufs_inuse = rte_mempool_in_use_count(print_pktmbuf_pool);
+            printf("\nmbufs in use: %u out of %u\n", mbufs_inuse, mbufs_avail);
             fflush(stdout);
         }
     }
     return 0;
 }
-
-struct rte_mempool * print_pktmbuf_pool = NULL;
 
 static void signal_handler(int signum) {
 	if (signum == SIGINT || signum == SIGTERM) {
@@ -138,6 +142,9 @@ int main(int argc, char **argv) {
 	if (print_pktmbuf_pool == NULL) {
 		rte_exit(EXIT_FAILURE, "Cannot init mbuf pool\n");
     }
+    mbufs_avail = rte_mempool_avail_count(print_pktmbuf_pool);
+
+    printf("Total mbufs available: %u\n", mbufs_avail);
 
 
 
@@ -199,7 +206,7 @@ int main(int argc, char **argv) {
         ret = rte_eth_promiscuous_enable(port_id);
     }
     if (ret < 0) {
-        rte_exit(EXIT_FAILURE, "rte_eth_promiscuous_enable failed\n");
+        printf("Port: rte_eth_promiscuous_enable failed\n");
     }
 
     ret = 0;
@@ -213,8 +220,9 @@ int main(int argc, char **argv) {
 
     printf("Closing port %d...", port_id);
     ret = rte_eth_dev_stop(port_id);
-    if (ret != 0)
-        printf("rte_eth_dev_stop: err=%d, port=%d\n", ret, port_id);
+    if (ret != 0) {
+        printf("rte_eth_dev_stop failed: err=%d, port=%d\n", ret, port_id);
+    }
     rte_eth_dev_close(port_id);
     printf(" Done\n");
 
