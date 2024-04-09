@@ -88,7 +88,7 @@ static int main_loop() {
                 printf("Ether type: %04X\n", rte_be_to_cpu_16(eth_hdr->ether_type));
 
                 rte_pktmbuf_dump(stdout, mbuf, pkt_len);
-                //rte_pktmbuf_free(mbuf);
+                rte_pktmbuf_free(mbuf);
                 mbufs_inuse = rte_mempool_in_use_count(print_pktmbuf_pool);
                 printf("\nmbufs in use: %u out of %u\n", mbufs_inuse, mbufs_avail);
                 fflush(stdout);
